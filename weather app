@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -95,7 +95,7 @@
             <button onclick="getWeather()" class="search-btn">Search City</button>
             <button onclick="getCurrentLocation()" class="location-btn">📍 My Location</button>
         </div>
-        <div id="weather"></div>
+        <div id="weather"></div>    
     </div>
     <script>
         const apiKey = "a090f18aa116fd91c8387fe872ac6f92";
@@ -143,7 +143,10 @@
                     if (!response.ok) throw new Error('Weather data not available');
                     return response.json();
                 })
-                .then(displayWeather)
+                .then(data => {
+                    document.getElementById('city').value = data.name;  // Set city name in input field
+                    displayWeather(data);
+                })
                 .catch(error => showError("Unable to fetch weather data."));
         }
 
@@ -167,18 +170,7 @@
         function displayWeather(data) {
             const temp = Math.round(data.main.temp);
             const feelsLike = Math.round(data.main.feels_like);
-            
-            // Get weather icon based on conditions
-            let weatherEmoji;
-            const weatherId = data.weather[0].id;
-            if (weatherId >= 200 && weatherId < 300) weatherEmoji = '⛈️';  // Thunderstorm
-            else if (weatherId >= 300 && weatherId < 500) weatherEmoji = '🌧️';  // Drizzle
-            else if (weatherId >= 500 && weatherId < 600) weatherEmoji = '🌧️';  // Rain
-            else if (weatherId >= 600 && weatherId < 700) weatherEmoji = '❄️';  // Snow
-            else if (weatherId >= 700 && weatherId < 800) weatherEmoji = '🌫️';  // Atmosphere
-            else if (weatherId === 800) weatherEmoji = '☀️';  // Clear
-            else weatherEmoji = '☁️';  // Clouds
-
+            let weatherEmoji = data.weather[0].id >= 800 ? '☀️' : '☁️';
             weatherDiv.innerHTML = `
                 <h2>📍 ${data.name}, ${data.sys.country}</h2>
                 <p style="font-size: 2em; margin: 10px 0;">${weatherEmoji} ${temp}°C</p>
@@ -189,7 +181,6 @@
             `;
         }
 
-        // Try to get location when page loads
         window.addEventListener('load', getCurrentLocation);
     </script>
 </body>

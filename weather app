@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <style> 
+        body {
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #2E3192, #1BFFFF);
+            margin: 0;
+            padding: 20px;
+            color: #fff;
+        }
+        #container {
+            max-width: 400px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        input {
+            padding: 14px;
+            font-size: 16px;
+            width: 80%;
+            border: none;
+            border-radius: 8px;
+            outline: none;
+            margin-bottom: 15px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.8);
+            color: #333;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 14px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #FF9F43;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            transition: background 0.3s ease, transform 0.2s ease;
+            flex: 1;
+            max-width: 200px;
+        }
+        button:hover {
+            background-color: #FF6F61;
+            transform: scale(1.05);
+        }
+        button.location-btn {
+            background-color: #4CAF50;
+        }
+        button.location-btn:hover {
+            background-color: #45a049;
+        }
+        #weather {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+            margin-top: 20px;
+            font-size: 18px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>🌤️ Weather App</h1>
+        <input type="text" id="city" placeholder="Enter city">
+        <div class="button-container">
+            <button onclick="getWeather()" class="search-btn">Search City</button>
+            <button onclick="getCurrentLocation()" class="location-btn">📍 My Location</button>
+        </div>
+        <div id="weather"></div>
+    </div>
+    <script>
+        const apiKey = "a090f18aa116fd91c8387fe872ac6f92";
+        const weatherDiv = document.getElementById('weather');
+
+        function showLoading() {
+            weatherDiv.innerHTML = '<div class="loading"></div>';
+        }
+
+        function showError(message) {
+            weatherDiv.innerHTML = `<p style="color: #ff6b6b;">⚠️ ${message}</p>`;
+        }
+
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                showLoading();
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        getWeatherByCoords(position.coords.latitude, position.coords.longitude);
+                    },
+                    error => {
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                showError("Location access denied. Please enable location permissions.");
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                showError("Location information unavailable.");
+                                break;
+                            case error.TIMEOUT:
+                                showError("Location request timed out.");
+                                break;
+                            default:
+                                showError("An unknown error occurred.");
+                        }
+                    }
+                );
+            } else {
+                showError("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function getWeatherByCoords(lat, lon) {
+            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Weather data not available');
+                    return response.json();
+                })
+                .then(displayWeather)
+                .catch(error => showError("Unable to fetch weather data."));
+        }
+
+        function getWeather() {
+            const city = document.getElementById('city').value;
+            if (!city) {
+                showError("Please enter a city name");
+                return;
+            }
+            
+            showLoading();
+            fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`)
+                .then(response => {
+                    if (!response.ok) throw new Error('City not found');
+                    return response.json();
+                })
+                .then(displayWeather)
+                .catch(error => showError("City not found. Please check the spelling."));
+        }
+
+        function displayWeather(data) {
+            const temp = Math.round(data.main.temp);
+            const feelsLike = Math.round(data.main.feels_like);
+            
+            // Get weather icon based on conditions
+            let weatherEmoji;
+            const weatherId = data.weather[0].id;
+            if (weatherId >= 200 && weatherId < 300) weatherEmoji = '⛈️';  // Thunderstorm
+            else if (weatherId >= 300 && weatherId < 500) weatherEmoji = '🌧️';  // Drizzle
+            else if (weatherId >= 500 && weatherId < 600) weatherEmoji = '🌧️';  // Rain
+            else if (weatherId >= 600 && weatherId < 700) weatherEmoji = '❄️';  // Snow
+            else if (weatherId >= 700 && weatherId < 800) weatherEmoji = '🌫️';  // Atmosphere
+            else if (weatherId === 800) weatherEmoji = '☀️';  // Clear
+            else weatherEmoji = '☁️';  // Clouds
+
+            weatherDiv.innerHTML = `
+                <h2>📍 ${data.name}, ${data.sys.country}</h2>
+                <p style="font-size: 2em; margin: 10px 0;">${weatherEmoji} ${temp}°C</p>
+                <p>Feels like: <b>${feelsLike}°C</b></p>
+                <p>🌥️ Weather: <b>${data.weather[0].description}</b></p>
+                <p>💧 Humidity: <b>${data.main.humidity}%</b></p>
+                <p>🌬️ Wind Speed: <b>${data.wind.speed} m/s</b></p>
+            `;
+        }
+
+        // Try to get location when page loads
+        window.addEventListener('load', getCurrentLocation);
+    </script>
+</body>
+</html>
